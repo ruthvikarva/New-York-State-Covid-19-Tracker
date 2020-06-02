@@ -1,7 +1,7 @@
 class Covid:
 
     def main():
-        print('Hello World by Ruthvik')
+        print('Hello World by Kelvin')
 
 
     main()
