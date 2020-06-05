@@ -1,38 +1,34 @@
-import plotly.figure_factory as ff
-import chart_studio.plotly as py
-import numpy as np
+from urllib.request import urlopen
+import urllib
+import json
 import pandas as pd
-import plotly.offline as pyo
-import plotly.graph_objs as go
+import plotly.express as px
 
-scope = ['New York']
-df  = pd.read_csv('https://sds-platform-private.s3-us-east-2.amazonaws.com/uploads/P48-Creating-Maps-Minority-Majority.csv')
+with urllib.request.urlopen("https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json") as url:
+    data = json.loads(url.read().decode())
+    data['features'] = [x for x in data['features'] if x['properties']['STATE'] == '36']
+    county_fips = [x['properties']['GEO_ID'].split("US")[1] for x in data['features'] if x['properties']['STATE'] == '36']
+    county_names = [x['properties']['NAME'] for x in data['features'] if x['properties']['STATE'] == '36']
 
-#df name
-df_new = df[df['STNAME'].isin(scope)]
-
-#list values
-values = df_new['TOT_POP'].tolist()
-fips = df_new['FIPS'].tolist()
-
-colorscale = ['#2daa4b', '#2daa4b','#2daa4b','#2daa4b','#2daa4b','#2daa4b','#2daa4b',
-              '#2daa4b', '#2daa4b','#2daa4b','#2daa4b','#2daa4b','#2daa4b','#2daa4b',
-              '#2daa4b', '#2daa4b','#2daa4b','#2daa4b','#2daa4b','#2daa4b','#2daa4b',
-              '#2daa4b', '#2daa4b','#2daa4b','#2daa4b','#2daa4b','#2daa4b','#2daa4b',
-              '#2daa4b', '#2daa4b','#2daa4b','#2daa4b','#2daa4b','#2daa4b','#2daa4b',
-              '#2daa4b', '#2daa4b','#2daa4b','#2daa4b','#2daa4b','#2daa4b','#2daa4b',
-              '#2daa4b', '#2daa4b','#2daa4b','#2daa4b','#2daa4b','#2daa4b','#2daa4b',
-              '#2daa4b', '#2daa4b','#2daa4b','#2daa4b','#2daa4b','#2daa4b','#2daa4b',
-              '#2daa4b', '#2daa4b','#2daa4b','#2daa4b','#2daa4b','#2daa4b','#2daa4b',]
-
-fig = ff.create_choropleth(
-      fips = fips, values=values, scope = scope, colorscale = colorscale, round_legend_values = True,
-      simplify_county = 0, simplify_state = 0,
-      county_outline = {'color': 'rgb(15,15,55)', 'width': 0.5},
-      state_outline = {'width': 0.5},
-      legend_title = 'Population Per County',
-      title = 'New York')
+    with urllib.request.urlopen("https://health.data.ny.gov/resource/xdss-u53e.json") as url1:
+        data1 = json.loads(url1.read().decode())
 
 
-#fig.show()
-pyo.plot(fig, filename = 'TEST.html')
+        county_new_positives = [int(county['new_positives']) for county in data1 if county['test_date'] == '2020-06-02T00:00:00.000']
+
+        pre_df = {'fips': county_fips, 'County New Positives': county_new_positives, 'county_names': county_names}
+        df = pd.DataFrame(pre_df)
+
+        fig = px.choropleth_mapbox(df, geojson=data, locations='fips', color='County New Positives',
+                                color_continuous_scale="Viridis",
+                                range_color=(0, 200),
+                                mapbox_style="carto-positron",
+                                zoom=3, center = {"lat": 37.0902, "lon": -95.7129},
+                                opacity=0.5,
+                                hover_name="county_names",
+                                hover_data={"County New Positives" : True, "fips" : False},
+
+                                labels={'County New Positives':'County New Positives'}
+                                )
+        fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+        fig.show()
