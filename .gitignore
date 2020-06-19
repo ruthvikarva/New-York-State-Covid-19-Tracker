@@ -131,4 +131,4 @@ dmypy.json
 # pycharm idea file removed
 .idea
 .ipynb_checkpoints
-
+.idea/
