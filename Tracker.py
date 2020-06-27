@@ -75,8 +75,9 @@ class Covid:
     print("real website:",real_website_date_human)
 
     website_date = str(real_website_date_human).split('-')
-    sample_date=['2020-03-02','2020-03-05','2020-03-07','2020-03-09']
-    sample_vals=[10,20,3]
+    sample_date=['2020-03-02', '2020-03-03', '2020-03-04', '2020-03-05', '2020-03-06', '2020-03-07', '2020-03-08', '2020-03-09', '2020-03-10', '2020-03-11', '2020-03-12', '2020-03-13', '2020-03-14', '2020-03-15', '2020-03-16', '2020-03-17']
+
+    sample_vals=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 6, 11, 13]
     df2=pd.read_excel(
     "https://github.com/chris1610/pbpython/blob/master/data/salesfunnel.xlsx?raw=True"
 )
@@ -115,41 +116,22 @@ class Covid:
                     value='Albany',
                     placeholder="Select a County")
             ], className="three columns"),
-            # html.Div([
-            #     dcc.Dropdown(
-            #         options=[
-            #             {'label': 'New York City', 'value': 'NYC'},
-            #             {'label': 'Montreal', 'value': 'MTL'},
-            #             {'label': 'San Francisco', 'value': 'SF'}
-            #         ],
-            #         placeholder="Select a city",
-            #         style={'height': 300}
-            #     )
-            # ], className="one column"),
         ], className="row"),
         html.Div([html.Div([
             dcc.Graph(
-                id="histogram",
-                    figure = {
-                    'data': [trace1],
-                    'layout':
-                    go.Layout(title='Order Status by Customer', barmode='stack')}
+                id="histogram"
             )
         ], className="six columns"),
-        html.Div([
-            dcc.Graph(
-                id="histogram2",
-                figure={
-                    'data': [trace2],
-                    'layout':
-                        go.Layout(title='Order Status by Customer', barmode='stack')}
-            )
-        ], className="six columns")
-        # date=str(dt(2020, 6, 10))
+            html.Div([html.Div([
+                dcc.Graph(
+                    id="histogram2"
+                )
+            ], className="six columns")
             ],className="Row"),
         html.Div([
             html.Div(id="test")
         ])
+    ])
     ])
 
     @app.callback(
@@ -246,7 +228,8 @@ class Covid:
             return fig
 
     @app.callback(
-        Output(component_id='test', component_property='children'),
+        [Output(component_id='histogram', component_property='figure'),
+        Output(component_id='histogram2', component_property='figure')],
         [Input(component_id='dropdown', component_property='value')])
 
     def update_histogram(options):
@@ -259,8 +242,51 @@ class Covid:
         conp = curs.fetchall()
         print("query: ",conp)
 
+        histogram_date=[]
+        histogram_positives=[]
+        histogram_tests=[]
 
+        for i in range(len(conp)):
+            utime=conp[i][0]
+            udate=date.fromtimestamp(utime)
+            histogram_date.append(str(udate))
+            p_today=conp[i][2]
+            histogram_positives.append(p_today)
+            t_today=conp[i][4]
+            histogram_tests.append(t_today)
+            #print(udate,p_today)
 
+        # test_date=['2020-03-03','2020-03-04','2020-03-05',]
+        # test_positives=[12,20,30]
+        #
+        # fig2 = go.Bar(x=test_date, y=test_positives, name='Pending')
+
+        pre_df2 = {
+            'date':histogram_date,
+            'positives':histogram_positives
+        }
+
+        pre_df3 = {
+            'date': histogram_date,
+            'positives': histogram_tests
+        }
+
+        df3 = pd.DataFrame(pre_df2)
+        print("df3: ",df3)
+        #fig2=px.histogram(df3)
+        trace3 = go.Bar(x=histogram_date, y=histogram_positives, name='Pending')
+        trace4= go.Bar(x=histogram_date, y=histogram_tests, name='Pending')
+        figure1 = {
+            'data': [trace3],
+            'layout':
+                go.Layout(title='Daily New Positives By County', barmode='stack')}
+
+        figure2 = {
+            'data': [trace4],
+            'layout':
+                go.Layout(title='Daily New Tests Performed By County', barmode='stack')}
+
+        return figure1,figure2
     if __name__ == "__main__":
         app.run_server(debug=True)
 
